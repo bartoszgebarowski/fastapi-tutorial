@@ -1,0 +1,5 @@
+[flake8]
+ignore = D203, C901, W503, F841, F523
+extend-ignore = F401
+exclude = venv/*,__pycache__,*/migrations/*,env.py,tests.py
+max-complexity = 10
