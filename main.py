@@ -1,7 +1,7 @@
 from enum import Enum
 
 from fastapi import FastAPI, Query, Path, Body
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, HttpUrl
 
 app = FastAPI()
 
@@ -218,16 +218,60 @@ app = FastAPI()
 # Part 8 -> Body Field
 
 
+# class Item(BaseModel):
+#     name: str
+#     description: str | None = Field(
+#         None, title="The description of the item", max_length=300
+#     )
+#     price: float = Field(..., gt=0, description="Must be greater than zero")
+#     tax: float | None = None
+
+
+# @app.put("/items/{item_id}")
+# async def update_item(item_id: int, item: Item = Body(..., embed=True)):
+#     results = {"item_id": item_id, "item": item}
+#     return results
+
+
+## Part 9 -> Nested models
+class Image(BaseModel):
+    # Pydantic httpurl validation
+    url: HttpUrl
+    name: str
+
+
 class Item(BaseModel):
     name: str
-    description: str | None = Field(
-        None, title="The description of the item", max_length=300
-    )
-    price: float = Field(..., gt=0, description="Must be greater than zero")
+    description: str | None = None
+    price: float
     tax: float | None = None
+    tags: list[str] = []
+    image: list[Image] | None = None
+
+
+class Offer(BaseModel):
+    name: str
+    description: str | None = None
+    price: float
+    items: list[Item]
 
 
 @app.put("/items/{item_id}")
-async def update_item(item_id: int, item: Item = Body(..., embed=True)):
+async def update_item(item_id: int, item: Item):
     results = {"item_id": item_id, "item": item}
     return results
+
+
+@app.post("/offers")
+async def create_offer(offer: Offer = Body(..., embed=True)):
+    return offer
+
+
+@app.post("/images/multiple")
+async def create_multiple_images(images: list[Image] = Body(..., embed=True)):
+    return images
+
+
+@app.post("/anotherone")
+async def create_example(example: dict[int, float]):
+    return example
