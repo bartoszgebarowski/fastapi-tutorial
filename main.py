@@ -234,10 +234,65 @@ app = FastAPI()
 
 
 ## Part 9 -> Nested models
-class Image(BaseModel):
-    # Pydantic httpurl validation
-    url: HttpUrl
-    name: str
+# class Image(BaseModel):
+#     # Pydantic httpurl validation
+#     url: HttpUrl
+#     name: str
+
+
+# class Item(BaseModel):
+#     name: str
+#     description: str | None = None
+#     price: float
+#     tax: float | None = None
+#     tags: list[str] = []
+#     image: list[Image] | None = None
+
+
+# class Offer(BaseModel):
+#     name: str
+#     description: str | None = None
+#     price: float
+#     items: list[Item]
+
+
+# @app.put("/items/{item_id}")
+# async def update_item(item_id: int, item: Item):
+#     results = {"item_id": item_id, "item": item}
+#     return results
+
+
+# @app.post("/offers")
+# async def create_offer(offer: Offer = Body(..., embed=True)):
+#     return offer
+
+
+# @app.post("/images/multiple")
+# async def create_multiple_images(images: list[Image] = Body(..., embed=True)):
+#     return images
+
+
+# @app.post("/anotherone")
+# async def create_example(example: dict[int, float]):
+#     return example
+
+# Part 10 -> Declare request example data
+
+# class Item(BaseModel):
+#     name: str = Field(..., example='Foo')
+#     description: str | None = Field(None, example="Item desc")
+#     price: float = Field(..., example=16.25)
+#     tax: float | None = Field(None, example=1.67)
+
+# class Config:
+#     schema_extra = {
+#         "example": {
+#             "name": "Foo",
+#             "description": "Item description",
+#             "price": 12.25,
+#             "tax": 1.67
+#         }
+#     }
 
 
 class Item(BaseModel):
@@ -245,33 +300,36 @@ class Item(BaseModel):
     description: str | None = None
     price: float
     tax: float | None = None
-    tags: list[str] = []
-    image: list[Image] | None = None
-
-
-class Offer(BaseModel):
-    name: str
-    description: str | None = None
-    price: float
-    items: list[Item]
 
 
 @app.put("/items/{item_id}")
-async def update_item(item_id: int, item: Item):
+async def update_item(
+    item_id: int,
+    item: Item = Body(
+        ...,
+        examples={
+            "normal": {
+                "summary": "A normal example",
+                "description": "A __normal__ item works _correctly_",
+                "value": {
+                    "name": "Foo",
+                    "description": "Normal desc item",
+                    "price": 16.25,
+                    "tax": 1.67,
+                },
+            },
+            "converted": {
+                "summary": "An example with converted data",
+                "description": "FastAPI can convert price `strings` to actual `numbers` automatically",
+                "value": {"name": "Bar", "price": "16.25"},
+            },
+            "invalid": {
+                "summary": "Invalid data is rejected with an error",
+                "description": "Example desc",
+                "value": {"name": "JJ", "price": "sixteen point two five"},
+            },
+        },
+    ),
+):
     results = {"item_id": item_id, "item": item}
     return results
-
-
-@app.post("/offers")
-async def create_offer(offer: Offer = Body(..., embed=True)):
-    return offer
-
-
-@app.post("/images/multiple")
-async def create_multiple_images(images: list[Image] = Body(..., embed=True)):
-    return images
-
-
-@app.post("/anotherone")
-async def create_example(example: dict[int, float]):
-    return example
