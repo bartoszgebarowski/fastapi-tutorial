@@ -1,6 +1,6 @@
 from enum import Enum
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 from pydantic import BaseModel
 
 app = FastAPI()
@@ -146,3 +146,44 @@ async def create_item_with_put(item_id: int, item: Item, q: str | None = None):
     if q:
         result.update({"q": q})
     return result
+
+
+# Query params and string validation
+
+
+@app.get("/itemsquery/")
+# required with validation  ...
+async def read_items(
+    q: list[str] | None = Query(..., min_length=3, max_length=10)
+):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+
+@app.get("/itemsquerymeta/")
+async def read_items_meta_data(
+    q: str
+    | None = Query(
+        None,
+        min_length=3,
+        max_length=10,
+        title="Sample",
+        description="This is sample query string",
+        alias="item-query",
+    )
+):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q": q})
+    return results
+
+
+@app.get("/items_hidden")
+async def hidden_query_route(
+    hidden_query: str | None = Query(None, include_in_schema=False)
+):
+    if hidden_query:
+        return {"hidden_query": hidden_query}
+    return {"hidden_query": "Not found"}
