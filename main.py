@@ -1,7 +1,8 @@
+from datetime import datetime, time, timedelta
 from enum import Enum
 from uuid import UUID
-from datetime import datetime, time, timedelta
-from fastapi import FastAPI, Query, Path, Body
+
+from fastapi import Body, Cookie, FastAPI, Header, Path, Query
 from pydantic import BaseModel, Field, HttpUrl
 
 app = FastAPI()
@@ -338,22 +339,41 @@ app = FastAPI()
 # 11 -> Extra Data types
 
 
-@app.put("/items/{item_id}")
+# @app.put("/items/{item_id}")
+# async def read_items(
+#     item_id: UUID,
+#     start_date: datetime | None = Body(None),
+#     end_date: datetime | None = Body(None),
+#     repeat_at: time | None = Body(None),
+#     process_after: timedelta | None = Body(None),
+# ):
+#     start_process = start_date + process_after
+#     duration = end_date - start_process
+#     return {
+#         "item_id": item_id,
+#         "start_date": start_date,
+#         "end_date": end_date,
+#         "repeat_at": repeat_at,
+#         "process_after": process_after,
+#         "start_process": start_process,
+#         "duration": duration,
+#     }
+
+# 12 -> Cookie and Header parameters section
+
+
+@app.get("/items")
 async def read_items(
-    item_id: UUID,
-    start_date: datetime | None = Body(None),
-    end_date: datetime | None = Body(None),
-    repeat_at: time | None = Body(None),
-    process_after: timedelta | None = Body(None),
+    cookie_id: str | None = Cookie(None),
+    accept_encoding: str | None = Header(None),
+    seo_ch_ua: str | None = Header(None),
+    user_agent: str | None = Header(None),
+    x_token: list[str] | None = Header(None),
 ):
-    start_process = start_date + process_after
-    duration = end_date - start_process
     return {
-        "item_id": item_id,
-        "start_date": start_date,
-        "end_date": end_date,
-        "repeat_at": repeat_at,
-        "process_after": process_after,
-        "start_process": start_process,
-        "duration": duration,
+        "cookie_id": cookie_id,
+        "Accept-Encoding": accept_encoding,
+        "sec-ch-ua": seo_ch_ua,
+        "User_Agent": user_agent,
+        "X-Token values": x_token,
     }
