@@ -1,7 +1,7 @@
 from datetime import datetime, time, timedelta
 from enum import Enum
 from uuid import UUID
-from typing import Literal
+from typing import Literal, Union
 
 from fastapi import Body, Cookie, FastAPI, Header, Path, Query
 from pydantic import BaseModel, Field, HttpUrl, EmailStr
@@ -381,51 +381,89 @@ app = FastAPI()
 
 
 # Part 13 -> Response model
-class Item(BaseModel):
-    name: str
-    description: str | None = None
-    price: float
-    tax: float = 10.5
-    tags: list[str] = []
+# class Item(BaseModel):
+#     name: str
+#     description: str | None = None
+#     price: float
+#     tax: float = 10.5
+#     tags: list[str] = []
 
 
-items = {
-    "foo": {"name": "Foo", "price": 50.2},
-    "bar": {
-        "name": "Bar",
-        "description": "The bartenders",
-        "price": 62,
-        "tax": 20.2,
-    },
-    "baz": {
-        "name": "Baz",
-        "description": None,
-        "price": 50.2,
-        "tax": 10.5,
-        "tags": [],
-    },
-}
+# items = {
+#     "foo": {"name": "Foo", "price": 50.2},
+#     "bar": {
+#         "name": "Bar",
+#         "description": "The bartenders",
+#         "price": 62,
+#         "tax": 20.2,
+#     },
+#     "baz": {
+#         "name": "Baz",
+#         "description": None,
+#         "price": 50.2,
+#         "tax": 10.5,
+#         "tags": [],
+#     },
+# }
 
 
-@app.get(
-    "/items/{item_id}", response_model=Item, response_model_exclude_unset=True
-)
-async def read_item(item_id: Literal["foo", "bar", "baz"]):
-    return items[item_id]
+# @app.get(
+#     "/items/{item_id}", response_model=Item, response_model_exclude_unset=True
+# )
+# async def read_item(item_id: Literal["foo", "bar", "baz"]):
+#     return items[item_id]
 
 
-@app.post("/items", response_model=Item)
-async def create_item(item: Item):
-    return item
+# @app.post("/items", response_model=Item)
+# async def create_item(item: Item):
+#     return item
 
 
+# class UserBase(BaseModel):
+#     username: str
+#     email: EmailStr
+#     full_name: str | None = None
+
+
+# class UserIn(BaseModel):
+#     password: str
+
+
+# class UserOut(UserBase):
+#     pass
+
+
+# @app.post("/user", response_model=UserOut)
+# async def create_user(user: UserIn):
+#     return user
+
+
+# @app.get(
+#     "/items/{item_id}/name}",
+#     response_model=Item,
+#     response_model_include={"name", "description"},
+# )
+# async def read_item_name(item_id: Literal["foo", "bar", "baz"]):
+#     return items[item_id]
+
+
+# @app.get(
+#     "items/{item_id}/public",
+#     response_model=Item,
+#     response_model_exclude={"tax"},
+# )
+# async def read_items_public_data(item_id: Literal["foo", "bar", "baz"]):
+#     return items[item_id]
+
+
+# Part 14 -> Extra Models
 class UserBase(BaseModel):
     username: str
     email: EmailStr
     full_name: str | None = None
 
 
-class UserIn(BaseModel):
+class UserIn(UserBase):
     password: str
 
 
@@ -433,24 +471,70 @@ class UserOut(UserBase):
     pass
 
 
-@app.post("/user", response_model=UserOut)
-async def create_user(user: UserIn):
-    return user
+class UserInDB(UserBase):
+    hashed_password: str
 
 
-@app.get(
-    "/items/{item_id}/name}",
-    response_model=Item,
-    response_model_include={"name", "description"},
-)
-async def read_item_name(item_id: Literal["foo", "bar", "baz"]):
+def fake_password_hasher(raw_password: str):
+    return f"supersecret{raw_password}"
+
+
+def fake_save_user(user_in: UserIn):
+    # double star - similar to spread operator in JS
+    hashed_password = fake_password_hasher(user_in.password)
+    user_in_db = UserInDB(**user_in.dict(), hashed_password=hashed_password)
+    print("userin.dict", user_in.dict())
+    print("User 'saved'")
+    return user_in_db
+
+
+@app.post("/user/", response_model=UserOut)
+async def create_user(user_in: UserIn):
+    user_saved = fake_save_user(user_in)
+    return user_saved
+
+
+class BaseItem(BaseModel):
+    description: str
+    type: str
+
+
+class CarItem(BaseItem):
+    type = "car"
+
+
+class PlaneItem(BaseItem):
+    type = "plane"
+    size: int
+
+
+items = {
+    "item1": {"description": "some desc", "type": "car"},
+    "item2": {"description": "desc 2", "type": "plane", "size": 5},
+}
+
+
+@app.get("/items/{item_id}", response_model=Union[PlaneItem, CarItem])
+async def read_item(item_id: Literal["item1", "item2"]):
     return items[item_id]
 
 
-@app.get(
-    "items/{item_id}/public",
-    response_model=Item,
-    response_model_exclude={"tax"},
-)
-async def read_items_public_data(item_id: Literal["foo", "bar", "baz"]):
-    return items[item_id]
+class ListItem(BaseModel):
+    name: str
+    description: str
+
+
+list_items = [
+    {"name": "Foo", "description": "123"},
+    {"name": "Bar", "description": "456"},
+]
+
+
+@app.get("/list_items/", response_model=list[ListItem])
+async def read_items():
+    return items
+
+
+@app.get("/arbitrary", response_model=dict[str, float])
+async def get_arbitrary():
+    return {"foo": 1, "bar": "2"}
