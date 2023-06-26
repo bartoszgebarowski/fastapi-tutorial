@@ -1,5 +1,6 @@
 from enum import Enum
-
+from uuid import UUID
+from datetime import datetime, time, timedelta
 from fastapi import FastAPI, Query, Path, Body
 from pydantic import BaseModel, Field, HttpUrl
 
@@ -295,41 +296,64 @@ app = FastAPI()
 #     }
 
 
-class Item(BaseModel):
-    name: str
-    description: str | None = None
-    price: float
-    tax: float | None = None
+# class Item(BaseModel):
+#     name: str
+#     description: str | None = None
+#     price: float
+#     tax: float | None = None
+
+
+# @app.put("/items/{item_id}")
+# async def update_item(
+#     item_id: int,
+#     item: Item = Body(
+#         ...,
+#         examples={
+#             "normal": {
+#                 "summary": "A normal example",
+#                 "description": "A __normal__ item works _correctly_",
+#                 "value": {
+#                     "name": "Foo",
+#                     "description": "Normal desc item",
+#                     "price": 16.25,
+#                     "tax": 1.67,
+#                 },
+#             },
+#             "converted": {
+#                 "summary": "An example with converted data",
+#                 "description": "FastAPI can convert price `strings` to actual `numbers` automatically",
+#                 "value": {"name": "Bar", "price": "16.25"},
+#             },
+#             "invalid": {
+#                 "summary": "Invalid data is rejected with an error",
+#                 "description": "Example desc",
+#                 "value": {"name": "JJ", "price": "sixteen point two five"},
+#             },
+#         },
+#     ),
+# ):
+#     results = {"item_id": item_id, "item": item}
+#     return results
+
+# 11 -> Extra Data types
 
 
 @app.put("/items/{item_id}")
-async def update_item(
-    item_id: int,
-    item: Item = Body(
-        ...,
-        examples={
-            "normal": {
-                "summary": "A normal example",
-                "description": "A __normal__ item works _correctly_",
-                "value": {
-                    "name": "Foo",
-                    "description": "Normal desc item",
-                    "price": 16.25,
-                    "tax": 1.67,
-                },
-            },
-            "converted": {
-                "summary": "An example with converted data",
-                "description": "FastAPI can convert price `strings` to actual `numbers` automatically",
-                "value": {"name": "Bar", "price": "16.25"},
-            },
-            "invalid": {
-                "summary": "Invalid data is rejected with an error",
-                "description": "Example desc",
-                "value": {"name": "JJ", "price": "sixteen point two five"},
-            },
-        },
-    ),
+async def read_items(
+    item_id: UUID,
+    start_date: datetime | None = Body(None),
+    end_date: datetime | None = Body(None),
+    repeat_at: time | None = Body(None),
+    process_after: timedelta | None = Body(None),
 ):
-    results = {"item_id": item_id, "item": item}
-    return results
+    start_process = start_date + process_after
+    duration = end_date - start_process
+    return {
+        "item_id": item_id,
+        "start_date": start_date,
+        "end_date": end_date,
+        "repeat_at": repeat_at,
+        "process_after": process_after,
+        "start_process": start_process,
+        "duration": duration,
+    }
