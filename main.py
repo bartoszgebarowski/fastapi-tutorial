@@ -3,7 +3,7 @@ from enum import Enum
 from uuid import UUID
 from typing import Literal, Union
 
-from fastapi import Body, Cookie, FastAPI, Header, Path, Query, status
+from fastapi import Body, Cookie, FastAPI, Header, Path, Query, status, Form
 from pydantic import BaseModel, Field, HttpUrl, EmailStr
 
 app = FastAPI()
@@ -542,19 +542,36 @@ app = FastAPI()
 # Part 15 -> Response status codes
 
 
-@app.post("/items/", status_code=status.HTTP_201_CREATED)
-async def create_item(name: str):
-    return {"name": name}
+# @app.post("/items/", status_code=status.HTTP_201_CREATED)
+# async def create_item(name: str):
+#     return {"name": name}
 
 
-@app.delete("/items/{pk}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_item(pk: str):
-    print("pk", pk)
-    # No item in a response
-    return pk
+# @app.delete("/items/{pk}", status_code=status.HTTP_204_NO_CONTENT)
+# async def delete_item(pk: str):
+#     print("pk", pk)
+#     # No item in a response
+#     return pk
 
 
-@app.get("/items1/", status_code=status.HTTP_302_FOUND)
-async def read_items_redirect():
-    # No item in a response
-    return {"hello": "world"}
+# @app.get("/items1/", status_code=status.HTTP_302_FOUND)
+# async def read_items_redirect():
+#     # No item in a response
+
+
+# Part 16 -> Form Fields
+class User(BaseModel):
+    username: str
+    password: str
+
+
+@app.post("/login")
+async def login(username: str = Form(...), password: str = Form(...)):
+    print("pass", password)
+    return {"username": username}
+
+
+@app.post("/login-json")
+async def login_json(username: str = Body(...), password: str = Body(...)):
+    print("password", password)
+    return username
