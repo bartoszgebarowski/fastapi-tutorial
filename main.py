@@ -1,22 +1,31 @@
 from datetime import datetime, time, timedelta
 from enum import Enum
-from uuid import UUID
 from typing import Literal, Union
+from uuid import UUID
 
-from fastapi.responses import HTMLResponse
 from fastapi import (
     Body,
     Cookie,
     FastAPI,
+    File,
+    Form,
     Header,
+    HTTPException,
     Path,
     Query,
-    status,
-    Form,
-    File,
+    Request,
     UploadFile,
+    status,
 )
-from pydantic import BaseModel, Field, HttpUrl, EmailStr
+from fastapi.encoders import jsonable_encoder
+from fastapi.exception_handlers import (
+    http_exception_handler,
+    request_validation_exception_handler,
+)
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
+from pydantic import BaseModel, EmailStr, Field, HttpUrl
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 app = FastAPI()
 
@@ -621,14 +630,100 @@ app = FastAPI()
 # Part 18 Request Forms and Files
 
 
-@app.post("/files/")
-async def create_file(
-    file: bytes = File(...),
-    fileb: UploadFile = File(...),
-    token: str = Form(...),
-):
-    return {
-        "file_size": len(file),
-        "token": token,
-        "fileb_content_type": fileb.content_type,
-    }
+# @app.post("/files/")
+# async def create_file(
+#     file: bytes = File(...),
+#     fileb: UploadFile = File(...),
+#     token: str = Form(...),
+# ):
+#     return {
+#         "file_size": len(file),
+#         "token": token,
+#         "fileb_content_type": fileb.content_type,
+#     }
+
+# Part 19 - Handling Errors
+
+items = {"foo": "bar"}
+
+
+@app.get("items/{items_id}")
+async def read_item(item_id: str):
+    if item_id not in items:
+        raise HTTPException(
+            status_code=404,
+            detail="Item not found",
+            headers={"X-Error": "My error"},
+        )
+    return {"item": items[item_id]}
+
+
+class UnicornException(Exception):
+    def __init__(self, name: str):
+        self.name = name
+
+
+@app.exception_handler(UnicornException)
+async def unicorn_exception_handler(request: Request, exc: UnicornException):
+    return JSONResponse(
+        status_code=418, content={"message": f"{exc.name} did something ..."}
+    )
+
+
+@app.get("/unicorns/{name}")
+async def read_unicorns(name: str):
+    if name == "yolo":
+        raise UnicornException(name=name)
+    return {"unicorn_name": name}
+
+
+# @app.exception_handler(RequestValidationError)
+# async def validation_exception_handler(request, exc):
+#     return PlainTextResponse(str(exc), status_code=400)
+
+# @app.exception_handler(StarletteHTTPException)
+# async def http_exception_handler(request, exc):
+#     return PlainTextResponse(str(exc.detail), status_code=exc.status_code)
+
+# @app.get("/validation_items/{item_id}")
+# async def read_validation_items(item_id: int):
+#     if item_id == 3:
+#         raise HTTPException(status_code=418, detail="Nope! I don't like 3")
+#     return  {"item_id": item_id}
+
+
+# @app.exception_handler(RequestValidationError)
+# async def validation_exception_handler(
+#     request: Request, exc: RequestValidationError
+# ):
+#     return JSONResponse(
+#         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+#         content=jsonable_encoder({"detail": exc.errors(), "body": exc.body}),
+#     )
+
+# class Item(BaseModel):
+#     title: str
+#     size: int
+
+# @app.post("/items/")
+# async def create_item(item: Item):
+#     return item
+
+
+@app.exception_handler(StarletteHTTPException)
+async def custom_http_exception_handler(request, exc):
+    print(f"OMG ! An HTTP error! : {repr(exc)}")
+    return await http_exception_handler(request, exc)
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc):
+    print(f"OMG ! The client sent invalid data: {exc}")
+    return await request_validation_exception_handler(request, exc)
+
+
+@app.get("/new_items/{item_id}")
+async def read_new_items(item_id: int):
+    if item_id == 3:
+        raise HTTPException(status_code=418, detail="Nope, I dont like 3")
+    return {"item_id": item_id}
