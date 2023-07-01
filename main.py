@@ -644,37 +644,37 @@ app = FastAPI()
 
 # Part 19 - Handling Errors
 
-items = {"foo": "bar"}
+# items = {"foo": "bar"}
 
 
-@app.get("items/{items_id}")
-async def read_item(item_id: str):
-    if item_id not in items:
-        raise HTTPException(
-            status_code=404,
-            detail="Item not found",
-            headers={"X-Error": "My error"},
-        )
-    return {"item": items[item_id]}
+# @app.get("items/{items_id}")
+# async def read_item(item_id: str):
+#     if item_id not in items:
+#         raise HTTPException(
+#             status_code=404,
+#             detail="Item not found",
+#             headers={"X-Error": "My error"},
+#         )
+#     return {"item": items[item_id]}
 
 
-class UnicornException(Exception):
-    def __init__(self, name: str):
-        self.name = name
+# class UnicornException(Exception):
+#     def __init__(self, name: str):
+#         self.name = name
 
 
-@app.exception_handler(UnicornException)
-async def unicorn_exception_handler(request: Request, exc: UnicornException):
-    return JSONResponse(
-        status_code=418, content={"message": f"{exc.name} did something ..."}
-    )
+# @app.exception_handler(UnicornException)
+# async def unicorn_exception_handler(request: Request, exc: UnicornException):
+#     return JSONResponse(
+#         status_code=418, content={"message": f"{exc.name} did something ..."}
+#     )
 
 
-@app.get("/unicorns/{name}")
-async def read_unicorns(name: str):
-    if name == "yolo":
-        raise UnicornException(name=name)
-    return {"unicorn_name": name}
+# @app.get("/unicorns/{name}")
+# async def read_unicorns(name: str):
+#     if name == "yolo":
+#         raise UnicornException(name=name)
+#     return {"unicorn_name": name}
 
 
 # @app.exception_handler(RequestValidationError)
@@ -710,20 +710,70 @@ async def read_unicorns(name: str):
 #     return item
 
 
-@app.exception_handler(StarletteHTTPException)
-async def custom_http_exception_handler(request, exc):
-    print(f"OMG ! An HTTP error! : {repr(exc)}")
-    return await http_exception_handler(request, exc)
+# @app.exception_handler(StarletteHTTPException)
+# async def custom_http_exception_handler(request, exc):
+#     print(f"OMG ! An HTTP error! : {repr(exc)}")
+#     return await http_exception_handler(request, exc)
 
 
-@app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request, exc):
-    print(f"OMG ! The client sent invalid data: {exc}")
-    return await request_validation_exception_handler(request, exc)
+# @app.exception_handler(RequestValidationError)
+# async def validation_exception_handler(request, exc):
+#     print(f"OMG ! The client sent invalid data: {exc}")
+#     return await request_validation_exception_handler(request, exc)
 
 
-@app.get("/new_items/{item_id}")
-async def read_new_items(item_id: int):
-    if item_id == 3:
-        raise HTTPException(status_code=418, detail="Nope, I dont like 3")
-    return {"item_id": item_id}
+# @app.get("/new_items/{item_id}")
+# async def read_new_items(item_id: int):
+#     if item_id == 3:
+#         raise HTTPException(status_code=418, detail="Nope, I dont like 3")
+#     return {"item_id": item_id}
+
+# Part 20 -> Operation Configuration
+
+
+class Item(BaseModel):
+    name: str
+    description: str | None = None
+    price: float
+    tax: float | None = None
+    tags: set[str] = set()
+
+
+class Tags(Enum):
+    items = "items"
+    users = "users"
+
+
+@app.post(
+    "/items/",
+    response_model=Item,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create an Item",
+    # description="Create an item with all the information: name; description; price; tax and a set of unique tags",
+    # response_description="The created item"
+)
+async def create_item(item: Item):
+    """
+    Create an item with all information:
+    - **name**: each item must have a name
+    - **description**: a long description
+    - **price**: required
+    - **tax**: if item doesn't have a tax, you can omit this
+    - **tags**: a set of unique tag strings for this item
+    """
+    return item
+
+
+@app.get("/items/", tags=[Tags.items])
+async def read_items():
+    return [{"name": "Foo", "price": 42}]
+
+
+@app.get("/users", tags=[Tags.users])
+async def read_users():
+    return [{"username": "Foobaruser"}]
+
+
+@app.get("/elements/", tags=[Tags.items], deprecated=True)
+async def read_elements():
+    return [{"item_id": "Foo elements"}]
