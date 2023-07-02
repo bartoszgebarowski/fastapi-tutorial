@@ -878,19 +878,41 @@ app = FastAPI()
 
 
 # Part 24 -> Classes as dependencies
-def query_extractor(q: str | None = None):
-    return q
+# def query_extractor(q: str | None = None):
+#     return q
 
 
-def query_or_body_extractor(
-    q: str = Depends(query_extractor), last_query: str | None = Body(None)
-):
-    if not q:
-        return last_query
-    else:
-        return q
+# def query_or_body_extractor(
+#     q: str = Depends(query_extractor), last_query: str | None = Body(None)
+# ):
+#     if not q:
+#         return last_query
+#     else:
+#         return q
 
 
-@app.post("item")
-async def try_query(query_or_body: str = Depends(query_or_body_extractor)):
-    return {"q_or_body": query_or_body}
+# @app.post("item")
+# async def try_query(query_or_body: str = Depends(query_or_body_extractor)):
+#     return {"q_or_body": query_or_body}
+
+# Part 25 -> Dependencies in path operation decorators, global dependencies
+async def verify_token(x_token: str = Header(...)):
+    if x_token != "fake-token":
+        raise HTTPException(status_code=400, detail="X-Token header invalid")
+
+async def verify_key(x_key: str = Header(...)):
+    if x_key != "fake-key":
+        raise HTTPException(status_code=400, detail="X-Key Header invalid")
+    return x_key
+
+# Global dependencies
+app = FastAPI(dependencies=[Depends(verify_key), Depends(verify_token)])
+
+# if you want use key in a function don't put it into a decorator
+@app.get('/items/')
+async def read_items():
+    return [{"item": "Foo"}, {"item": "bar"}]
+
+@app.get('/users/')
+async def read_users():
+    return [{"username": "Rick"}, {"username": "Morty"}]
